@@ -36,3 +36,4 @@ secrets/
 
 # Processing tracker files (runtime state)
 **/stakeholder_processing_tracker.json
+node_modules

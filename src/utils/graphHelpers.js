@@ -132,17 +132,17 @@ export function getFilteredGraphData(
       const sourceId = link.source.id || link.source;
       return selectedShareholders.has(sourceId);
     });
-    console.log('Manual mode: selected shareholders:', selectedShareholders.size, 'filtered links:', filteredLinks.length);
+    // console.log('Manual mode: selected shareholders:', selectedShareholders.size, 'filtered links:', filteredLinks.length);
   } else {
     // Auto mode: apply Top N filter by edge count
-    console.log('Auto mode: topN =', topN, 'total shareholders:', shareholderDegreeForTopN.size);
+    // console.log('Auto mode: topN =', topN, 'total shareholders:', shareholderDegreeForTopN.size);
     
     const sortedShareholders = Array.from(shareholderDegreeForTopN.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, topN === Infinity ? shareholderDegreeForTopN.size : topN)
       .map(([id]) => id);
     
-    console.log('Top N shareholders selected:', sortedShareholders.length);
+    // console.log('Top N shareholders selected:', sortedShareholders.length);
     
     const topShareholderSet = new Set(sortedShareholders);
     
@@ -151,7 +151,7 @@ export function getFilteredGraphData(
       const sourceId = link.source.id || link.source;
       return topShareholderSet.has(sourceId);
     });
-    console.log('Links before Top N filter:', beforeFilterCount, 'after:', filteredLinks.length);
+    // console.log('Links before Top N filter:', beforeFilterCount, 'after:', filteredLinks.length);
   }
   
   // Calculate actual shareholder degree from FINAL filtered links (for node sizing)
@@ -186,7 +186,7 @@ export function getFilteredGraphData(
     return node;
   });
   
-  console.log('Final result: nodes:', filteredNodes.length, 'shareholders:', filteredNodes.filter(n => n.node_type === 'shareholder').length, 'companies:', filteredNodes.filter(n => n.node_type === 'company').length, 'links:', filteredLinks.length);
+  // console.log('Final result: nodes:', filteredNodes.length, 'shareholders:', filteredNodes.filter(n => n.node_type === 'shareholder').length, 'companies:', filteredNodes.filter(n => n.node_type === 'company').length, 'links:', filteredLinks.length);
   
   return { nodes: filteredNodes, links: filteredLinks };
 }

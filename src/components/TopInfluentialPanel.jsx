@@ -6,14 +6,14 @@ export default function TopInfluentialPanel({
   topN = 10, 
   onClose 
 }) {
-  console.log('[TopInfluential] selectedCompanies:', selectedCompanies, 'size:', selectedCompanies?.size);
+  // console.log('[TopInfluential] selectedCompanies:', selectedCompanies, 'size:', selectedCompanies?.size);
   
   // Calculate influential shareholders based on current selection
   const influentialShareholders = useMemo(() => {
     if (!data || !selectedCompanies || selectedCompanies.size === 0) return [];
 
-    console.log('[TopInfluential] Calculating with', selectedCompanies.size, 'companies');
-    console.log('[TopInfluential] Selected IDs:', Array.from(selectedCompanies));
+    // console.log('[TopInfluential] Calculating with', selectedCompanies.size, 'companies');
+    // console.log('[TopInfluential] Selected IDs:', Array.from(selectedCompanies));
 
     // Count companies each shareholder is connected to (within selected companies)
     const shareholderConnections = new Map();
@@ -46,13 +46,13 @@ export default function TopInfluentialPanel({
       }
     });
 
-    console.log('[TopInfluential] Found', shareholderConnections.size, 'unique shareholders');
+    // console.log('[TopInfluential] Found', shareholderConnections.size, 'unique shareholders');
 
     // Convert to array and sort by company count (descending)
     const sorted = Array.from(shareholderConnections.values())
       .sort((a, b) => b.companyCount - a.companyCount);
 
-    console.log('[TopInfluential] Top 5:', sorted.slice(0, 5).map(s => ({ name: s.name, count: s.companyCount })));
+    // console.log('[TopInfluential] Top 5:', sorted.slice(0, 5).map(s => ({ name: s.name, count: s.companyCount })));
 
     // Return top N
     return sorted.slice(0, topN);

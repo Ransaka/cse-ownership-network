@@ -106,8 +106,8 @@ function App() {
   };
 
   const handleShowTopInfluential = () => {
-    console.log('[App] Opening Top Influential with', selectedCompanies.size, 'companies selected');
-    console.log('[App] Selected IDs:', Array.from(selectedCompanies));
+    // console.log('[App] Opening Top Influential with', selectedCompanies.size, 'companies selected');
+    // console.log('[App] Selected IDs:', Array.from(selectedCompanies));
     setShowTopInfluential(true);
   };
 

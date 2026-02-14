@@ -7,7 +7,7 @@
         fetch('/data/graph.json')
             .then(r => r.json())
             .then(d => {
-                console.log('Data loaded:', d.nodes.length, 'nodes');
+                // console.log('Data loaded:', d.nodes.length, 'nodes');
                 document.body.innerHTML = '<h1>Data loaded: ' + d.nodes.length + ' nodes</h1>';
             })
             .catch(e => {

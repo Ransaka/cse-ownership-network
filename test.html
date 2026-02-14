@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+    <script type="module">
+        // Test if we can fetch the data
+        fetch('/data/graph.json')
+            .then(r => r.json())
+            .then(d => {
+                console.log('Data loaded:', d.nodes.length, 'nodes');
+                document.body.innerHTML = '<h1>Data loaded: ' + d.nodes.length + ' nodes</h1>';
+            })
+            .catch(e => {
+                console.error('Error:', e);
+                document.body.innerHTML = '<h1>Error: ' + e.message + '</h1>';
+            });
+    </script>
+</head>
+<body>
+    <h1>Loading...</h1>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Python artifacts
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data and logs
+data/
+logs/
+*.log
+
+# API keys and secrets
+.env
+*.key
+secrets/
+
+# Processing tracker files (runtime state)
+**/stakeholder_processing_tracker.json

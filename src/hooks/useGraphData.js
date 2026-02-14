@@ -10,7 +10,7 @@ export function useGraphData() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch('/data/graph.json');
+        const response = await fetch('/dist/data/graph.json');
         
         if (!response.ok) {
           throw new Error(`Failed to load graph data (status: ${response.status})`);

@@ -7,6 +7,7 @@ import GraphCanvas from './components/GraphCanvas';
 import DetailsPanel from './components/DetailsPanel';
 import TopInfluentialPanel from './components/TopInfluentialPanel';
 import AIAssistantButton from './components/AIAssistantButton';
+import AcknowledgmentPopup from './components/AcknowledgmentPopup';
 
 function App() {
   const { data, loading, error, companies, shareholders } = useGraphData();
@@ -21,6 +22,9 @@ function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [showTopInfluential, setShowTopInfluential] = useState(false);
+  const [showAcknowledgment, setShowAcknowledgment] = useState(
+    !localStorage.getItem('ai-acknowledgment-accepted')
+  );
 
   // Select first company by default when data loads
   useEffect(() => {
@@ -106,8 +110,8 @@ function App() {
   };
 
   const handleShowTopInfluential = () => {
-    // console.log('[App] Opening Top Influential with', selectedCompanies.size, 'companies selected');
-    // console.log('[App] Selected IDs:', Array.from(selectedCompanies));
+    console.log('[App] Opening Top Influential with', selectedCompanies.size, 'companies selected');
+    console.log('[App] Selected IDs:', Array.from(selectedCompanies));
     setShowTopInfluential(true);
   };
 
@@ -208,6 +212,10 @@ function App() {
       )}
 
       <AIAssistantButton />
+
+      {showAcknowledgment && (
+        <AcknowledgmentPopup onClose={() => setShowAcknowledgment(false)} />
+      )}
     </div>
   );
 }

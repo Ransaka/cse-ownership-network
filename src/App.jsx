@@ -25,6 +25,8 @@ function App() {
   const [showAcknowledgment, setShowAcknowledgment] = useState(
     !localStorage.getItem('ai-acknowledgment-accepted')
   );
+  const [mergedGroups, setMergedGroups] = useState([]);
+  // mergedGroups format: [{ id: 'merge_1', name: 'User Given Name', shareholderIds: ['sh1', 'sh2'], color: '#ff5533' }]
 
   // Select first company by default when data loads
   useEffect(() => {
@@ -48,9 +50,10 @@ function App() {
       selectedCompanies,
       selectedShareholders,
       topN,
-      minPercentage
+      minPercentage,
+      mergedGroups
     );
-  }, [data, selectedCompanies, selectedShareholders, topN, minPercentage]);
+  }, [data, selectedCompanies, selectedShareholders, topN, minPercentage, mergedGroups]);
 
   // Handlers
   const handleToggleCompany = (companyId) => {
@@ -93,6 +96,23 @@ function App() {
 
   const handleClearAllShareholders = () => {
     setSelectedShareholders(new Set());
+  };
+
+  const handleCreateMerge = (name, shareholderIds) => {
+    const mergeId = `merge_${Date.now()}`;
+    const newMerge = {
+      id: mergeId,
+      name: name,
+      shareholderIds: shareholderIds,
+      color: '#ff5533'
+    };
+    setMergedGroups(prev => [...prev, newMerge]);
+    // Clear selected shareholders after merge to return to auto mode
+    setSelectedShareholders(new Set());
+  };
+
+  const handleDeleteMerge = (mergeId) => {
+    setMergedGroups(prev => prev.filter(m => m.id !== mergeId));
   };
 
   const handleResetZoom = () => {
@@ -181,6 +201,9 @@ function App() {
             onMinPercentageChange={setMinPercentage}
             regexMode={regexMode}
             onRegexModeChange={setRegexMode}
+            mergedGroups={mergedGroups}
+            onCreateMerge={handleCreateMerge}
+            onDeleteMerge={handleDeleteMerge}
           />
         )}
 
@@ -190,6 +213,7 @@ function App() {
             showLabels={showLabels}
             onResetZoom={handleResetZoom}
             onNodeClick={handleNodeClick}
+            mergedGroups={mergedGroups}
           />
           
           {selectedNode && (
@@ -197,6 +221,8 @@ function App() {
               selectedNode={selectedNode}
               onClose={() => setSelectedNode(null)}
               data={data}
+              graphData={graphData}
+              mergedGroups={mergedGroups}
             />
           )}
         </div>

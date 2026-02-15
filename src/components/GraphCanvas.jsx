@@ -5,7 +5,8 @@ export default function GraphCanvas({
   graphData, 
   showLabels, 
   onResetZoom,
-  onNodeClick 
+  onNodeClick,
+  mergedGroups = []
 }) {
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
@@ -67,7 +68,7 @@ export default function GraphCanvas({
     simulationRef.current = simulation;
 
     // Debug: Check if all links have valid nodes
-    // console.log('GraphCanvas: nodes:', nodes.length, 'links:', links.length);
+    console.log('GraphCanvas: nodes:', nodes.length, 'links:', links.length);
     const nodeIds = new Set(nodes.map(n => n.id));
     const invalidLinks = links.filter(link => {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
@@ -76,19 +77,21 @@ export default function GraphCanvas({
     });
     if (invalidLinks.length > 0) {
       console.warn('Invalid links found (nodes missing):', invalidLinks.length, invalidLinks);
+    } else {
+      console.log('✅ All links have valid source and target nodes');
     }
     
     // Log shareholder info
     const shareholders = nodes.filter(n => n.node_type === 'shareholder');
-    // console.log('Shareholders:', shareholders.map(s => ({ name: s.name.substring(0, 30), edges: s.edgeCount, id: s.id })));
+    console.log('Shareholders:', shareholders.map(s => ({ name: s.name.substring(0, 30), edges: s.edgeCount, id: s.id })));
     
     // Log link info
-    // console.log('Links sample:', links.slice(0, 3).map(l => ({
-    //   source: typeof l.source === 'object' ? l.source.id : l.source,
-    //   target: typeof l.target === 'object' ? l.target.id : l.target,
-    //   sourceType: typeof l.source,
-    //   targetType: typeof l.target
-    // })));
+    console.log('Links sample:', links.slice(0, 3).map(l => ({
+      source: typeof l.source === 'object' ? l.source.id : l.source,
+      target: typeof l.target === 'object' ? l.target.id : l.target,
+      sourceType: typeof l.source,
+      targetType: typeof l.target
+    })));
 
     // Create links
     const link = g.append('g')
@@ -107,14 +110,18 @@ export default function GraphCanvas({
       .attr('class', 'cursor-pointer')
       .call(drag(simulation));
 
-    // Add circles with orange color for shareholders
+    // Add circles with orange color for shareholders and red-orange for merged
     node.append('circle')
       .attr('r', getNodeRadius)
-      .attr('class', d => 
-        d.node_type === 'company' 
-          ? 'fill-primary-500 stroke-primary-300 stroke-2' 
-          : 'fill-orange-500 stroke-orange-300 stroke-2'
-      )
+      .attr('class', d => {
+        if (d.node_type === 'company') {
+          return 'fill-primary-500 stroke-primary-300 stroke-2';
+        } else if (d.merged) {
+          return 'fill-red-orange-500 stroke-red-orange-300 stroke-2';
+        } else {
+          return 'fill-orange-500 stroke-orange-300 stroke-2';
+        }
+      })
       .on('click', (event, d) => {
         event.stopPropagation();
         if (onNodeClick) onNodeClick(d);

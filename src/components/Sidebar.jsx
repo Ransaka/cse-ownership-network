@@ -18,7 +18,10 @@ export default function Sidebar({
   minPercentage,
   onMinPercentageChange,
   regexMode,
-  onRegexModeChange
+  onRegexModeChange,
+  mergedGroups,
+  onCreateMerge,
+  onDeleteMerge
 }) {
   return (
     <div className="w-80 bg-dark-800 border-r border-dark-700 flex flex-col h-full">
@@ -47,6 +50,10 @@ export default function Sidebar({
           onMinPercentageChange={onMinPercentageChange}
           regexMode={regexMode}
           onRegexModeChange={onRegexModeChange}
+          shareholders={shareholders}
+          onCreateMerge={onCreateMerge}
+          onDeleteMerge={onDeleteMerge}
+          mergedGroups={mergedGroups}
         />
       </div>
     </div>

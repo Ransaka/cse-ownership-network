@@ -97,11 +97,20 @@ export function getFilteredGraphData(
   selectedCompanies,
   selectedShareholders,
   topN,
-  minPercentage
+  minPercentage,
+  mergedGroups = []
 ) {
   if (!data || selectedCompanies.size === 0) {
     return { nodes: [], links: [] };
   }
+  
+  // Create a map of shareholder IDs to their merged group
+  const shareholderToMergeMap = new Map();
+  mergedGroups.forEach(merge => {
+    merge.shareholderIds.forEach(shareholderId => {
+      shareholderToMergeMap.set(shareholderId, merge);
+    });
+  });
   
   // Get links for selected companies
   let filteredLinks = data.links.filter(link => 
@@ -114,6 +123,45 @@ export function getFilteredGraphData(
       (link.percentage || 0) >= minPercentage
     );
   }
+  
+  // Aggregate links for merged shareholders
+  const mergedLinksMap = new Map();
+  
+  filteredLinks.forEach(link => {
+    const sourceId = link.source.id || link.source;
+    const targetId = link.target.id || link.target;
+    const mergeGroup = shareholderToMergeMap.get(sourceId);
+    
+    if (mergeGroup) {
+      // This shareholder is part of a merge - aggregate the link
+      const mergeKey = `${mergeGroup.id}_${targetId}`;
+      
+      if (!mergedLinksMap.has(mergeKey)) {
+        mergedLinksMap.set(mergeKey, {
+          source: mergeGroup.id,
+          target: targetId,
+          shares: 0,
+          percentage: 0,
+          originalLinks: []
+        });
+      }
+      
+      const merged = mergedLinksMap.get(mergeKey);
+      merged.shares += link.shares || 0;
+      merged.percentage += link.percentage || 0;
+      merged.originalLinks.push({
+        ...link,
+        originalSourceId: sourceId
+      });
+    } else {
+      // Not merged, keep original link
+      const key = `${sourceId}_${targetId}`;
+      mergedLinksMap.set(key, { ...link });
+    }
+  });
+  
+  // Convert back to array
+  filteredLinks = Array.from(mergedLinksMap.values());
   
   // Calculate shareholder degree for Top N sorting (before shareholder filtering)
   const shareholderDegreeForTopN = new Map();
@@ -128,21 +176,36 @@ export function getFilteredGraphData(
   // Apply shareholder selection
   if (selectedShareholders.size > 0) {
     // Manual mode: only show selected shareholders
+    // Need to handle merged shareholders: if any of the original shareholder IDs are selected,
+    // include the merged entity
     filteredLinks = filteredLinks.filter(link => {
       const sourceId = link.source.id || link.source;
-      return selectedShareholders.has(sourceId);
+      
+      // Check if the source ID itself is selected
+      if (selectedShareholders.has(sourceId)) {
+        return true;
+      }
+      
+      // If this is a merged link, check if any of the original shareholders are selected
+      if (link.originalLinks) {
+        return link.originalLinks.some(ol => 
+          selectedShareholders.has(ol.originalSourceId)
+        );
+      }
+      
+      return false;
     });
-    // console.log('Manual mode: selected shareholders:', selectedShareholders.size, 'filtered links:', filteredLinks.length);
+    console.log('Manual mode: selected shareholders:', selectedShareholders.size, 'filtered links:', filteredLinks.length);
   } else {
     // Auto mode: apply Top N filter by edge count
-    // console.log('Auto mode: topN =', topN, 'total shareholders:', shareholderDegreeForTopN.size);
+    console.log('Auto mode: topN =', topN, 'total shareholders:', shareholderDegreeForTopN.size);
     
     const sortedShareholders = Array.from(shareholderDegreeForTopN.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, topN === Infinity ? shareholderDegreeForTopN.size : topN)
       .map(([id]) => id);
     
-    // console.log('Top N shareholders selected:', sortedShareholders.length);
+    console.log('Top N shareholders selected:', sortedShareholders.length);
     
     const topShareholderSet = new Set(sortedShareholders);
     
@@ -151,7 +214,7 @@ export function getFilteredGraphData(
       const sourceId = link.source.id || link.source;
       return topShareholderSet.has(sourceId);
     });
-    // console.log('Links before Top N filter:', beforeFilterCount, 'after:', filteredLinks.length);
+    console.log('Links before Top N filter:', beforeFilterCount, 'after:', filteredLinks.length);
   }
   
   // Calculate actual shareholder degree from FINAL filtered links (for node sizing)
@@ -168,25 +231,43 @@ export function getFilteredGraphData(
   const shareholderIds = new Set(filteredLinks.map(link => link.source.id || link.source));
   const companyIds = new Set(filteredLinks.map(link => link.target.id || link.target));
   
-  const filteredNodes = data.nodes.filter(node => {
-    if (node.node_type === 'shareholder') {
-      return shareholderIds.has(node.id);
-    } else {
-      // Only show companies that have connections
-      return companyIds.has(node.id);
+  // Filter original nodes and add merged nodes
+  const filteredNodes = [];
+  
+  // Add company nodes
+  data.nodes.filter(node => node.node_type === 'company' && companyIds.has(node.id))
+    .forEach(node => filteredNodes.push(node));
+  
+  // Add shareholder nodes (excluding merged ones)
+  data.nodes.filter(node => {
+    if (node.node_type === 'shareholder' && shareholderIds.has(node.id)) {
+      // Only include if not part of a merge
+      return !shareholderToMergeMap.has(node.id);
     }
-  }).map(node => {
-    // Add edge count (degree) to shareholder nodes
-    if (node.node_type === 'shareholder') {
-      return {
-        ...node,
-        edgeCount: shareholderDegree.get(node.id) || 0
-      };
-    }
-    return node;
+    return false;
+  }).forEach(node => {
+    filteredNodes.push({
+      ...node,
+      edgeCount: shareholderDegree.get(node.id) || 0
+    });
   });
   
-  // console.log('Final result: nodes:', filteredNodes.length, 'shareholders:', filteredNodes.filter(n => n.node_type === 'shareholder').length, 'companies:', filteredNodes.filter(n => n.node_type === 'company').length, 'links:', filteredLinks.length);
+  // Add merged shareholder nodes
+  mergedGroups.forEach(merge => {
+    // Check if this merge group has any connections in the filtered links
+    if (shareholderIds.has(merge.id)) {
+      filteredNodes.push({
+        id: merge.id,
+        name: merge.name,
+        node_type: 'shareholder',
+        merged: true,
+        mergeGroup: merge,
+        edgeCount: shareholderDegree.get(merge.id) || 0
+      });
+    }
+  });
+  
+  console.log('Final result: nodes:', filteredNodes.length, 'shareholders:', filteredNodes.filter(n => n.node_type === 'shareholder').length, 'companies:', filteredNodes.filter(n => n.node_type === 'company').length, 'links:', filteredLinks.length);
   
   return { nodes: filteredNodes, links: filteredLinks };
 }

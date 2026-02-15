@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { filterBySearch, highlightMatch } from '../utils/graphHelpers';
+import MergeModal from './MergeModal';
 
 export default function ShareholderFilter({
   shareholderList,
@@ -12,9 +13,14 @@ export default function ShareholderFilter({
   minPercentage,
   onMinPercentageChange,
   regexMode,
-  onRegexModeChange
+  onRegexModeChange,
+  shareholders,
+  onCreateMerge,
+  onDeleteMerge,
+  mergedGroups
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showMergeModal, setShowMergeModal] = useState(false);
 
   const filtered = filterBySearch(
     shareholderList,
@@ -103,11 +109,53 @@ export default function ShareholderFilter({
             >
               Clear
             </button>
+            <button
+              onClick={() => setShowMergeModal(true)}
+              disabled={selectedShareholders.size < 2}
+              className="flex-1 px-2 py-1 bg-red-orange-500 hover:bg-red-orange-600 disabled:bg-dark-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded text-xs font-medium transition-colors"
+            >
+              Merge
+            </button>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+        {/* Merged Groups Section */}
+        {mergedGroups && mergedGroups.length > 0 && (
+          <div className="p-2 border-b border-dark-700">
+            <div className="text-xs text-slate-400 mb-2 px-2 font-semibold">Merged Groups</div>
+            {mergedGroups.map(merge => (
+              <div
+                key={merge.id}
+                className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-orange-500/10 border border-red-orange-500/30 mb-2"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-red-orange-400">
+                    {merge.name}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs px-1.5 py-0.5 bg-red-orange-500/30 text-red-orange-200 rounded">
+                      Merged
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {merge.shareholderIds.length} shareholders
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => onDeleteMerge(merge.id)}
+                  className="text-red-orange-400 hover:text-red-orange-300 text-lg leading-none px-1"
+                  title="Delete merge"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Regular Shareholders List */}
         {shareholderList.length === 0 ? (
           <div className="p-4 text-center text-sm text-slate-500">
             Select a company to view shareholders
@@ -164,6 +212,15 @@ export default function ShareholderFilter({
           </div>
         )}
       </div>
+
+      {showMergeModal && (
+        <MergeModal
+          selectedShareholders={selectedShareholders}
+          shareholders={shareholders}
+          onClose={() => setShowMergeModal(false)}
+          onCreateMerge={onCreateMerge}
+        />
+      )}
     </div>
   );
 }

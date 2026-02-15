@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
-export default function DetailsPanel({ selectedNode, onClose, data }) {
+export default function DetailsPanel({ selectedNode, onClose, data, graphData, mergedGroups = [] }) {
+  const [expandedHoldings, setExpandedHoldings] = useState({});
   const details = useMemo(() => {
     if (!selectedNode || !data) return null;
 
@@ -29,6 +30,45 @@ export default function DetailsPanel({ selectedNode, onClose, data }) {
         items: shareholders.slice(0, 10),
         listTitle: 'Top Shareholders'
       };
+    } else if (selectedNode.merged) {
+      // Merged shareholder - use graphData.links which has the merged links
+      const holdings = (graphData?.links || [])
+        .filter(link => {
+          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+          return sourceId === selectedNode.id;
+        })
+        .map(link => {
+          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+          const targetNode = data.nodes.find(n => n.id === targetId);
+          
+          // Get breakdown from originalLinks if available
+          const breakdown = link.originalLinks?.map(ol => {
+            const originalSourceNode = data.nodes.find(n => n.id === ol.originalSourceId);
+            return {
+              shareholderName: originalSourceNode?.name || 'Unknown',
+              shares: ol.shares,
+              percentage: ol.percentage
+            };
+          }) || [];
+          
+          return {
+            ticker: targetNode?.ticker || 'N/A',
+            name: targetNode?.name || 'Unknown',
+            shares: link.shares,
+            percentage: link.percentage,
+            breakdown: breakdown
+          };
+        })
+        .sort((a, b) => b.percentage - a.percentage);
+
+      return {
+        type: 'merged_shareholder',
+        title: selectedNode.name,
+        subtitle: 'Merged Shareholder',
+        items: holdings,
+        listTitle: 'Holdings',
+        mergeGroup: selectedNode.mergeGroup
+      };
     } else {
       // Get holdings for this shareholder
       const holdings = data.links
@@ -56,7 +96,7 @@ export default function DetailsPanel({ selectedNode, onClose, data }) {
         listTitle: 'Holdings'
       };
     }
-  }, [selectedNode, data]);
+  }, [selectedNode, data, graphData]);
 
   if (!details) return null;
 
@@ -85,6 +125,15 @@ export default function DetailsPanel({ selectedNode, onClose, data }) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
+        {details.type === 'merged_shareholder' && details.mergeGroup && (
+          <div className="mb-6 bg-red-orange-500/10 border border-red-orange-500/30 rounded-lg p-4">
+            <div className="text-xs text-red-orange-400 font-semibold mb-2">MERGED GROUP</div>
+            <div className="text-sm text-slate-300">
+              This is a merged entity containing {details.mergeGroup.shareholderIds.length} shareholders
+            </div>
+          </div>
+        )}
+        
         <h3 className="text-sm font-medium text-slate-300 mb-4">{details.listTitle}</h3>
         
         {details.items.length === 0 ? (
@@ -109,6 +158,58 @@ export default function DetailsPanel({ selectedNode, onClose, data }) {
                     <div className="text-xs text-primary-500 font-mono mt-1">
                       {item.percentage ? item.percentage.toFixed(2) : 'N/A'}%
                     </div>
+                  </>
+                ) : details.type === 'merged_shareholder' ? (
+                  // Merged shareholder holdings with breakdown
+                  <>
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <span className="font-semibold text-slate-200 text-sm">
+                          {item.ticker}
+                        </span>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {item.name}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono">
+                      {item.shares ? item.shares.toLocaleString() : 'N/A'} shares (total)
+                    </div>
+                    <div className="text-xs text-red-orange-500 font-mono mt-1">
+                      {item.percentage ? item.percentage.toFixed(2) : 'N/A'}%
+                    </div>
+                    
+                    {/* Breakdown Section */}
+                    {item.breakdown && item.breakdown.length > 0 && (
+                      <div className="mt-3">
+                        <button
+                          onClick={() => setExpandedHoldings(prev => ({
+                            ...prev,
+                            [index]: !prev[index]
+                          }))}
+                          className="text-xs text-red-orange-400 hover:text-red-orange-300 flex items-center gap-1"
+                        >
+                          <span>{expandedHoldings[index] ? '▼' : '▶'}</span>
+                          <span>Show breakdown ({item.breakdown.length} shareholders)</span>
+                        </button>
+                        
+                        {expandedHoldings[index] && (
+                          <div className="mt-2 pl-4 border-l-2 border-red-orange-500/30 space-y-2">
+                            {item.breakdown.map((breakdownItem, bIndex) => (
+                              <div key={bIndex} className="text-xs">
+                                <div className="text-slate-300 font-medium">
+                                  {breakdownItem.shareholderName}
+                                </div>
+                                <div className="flex gap-3 text-slate-500 font-mono mt-0.5">
+                                  <span>{breakdownItem.shares?.toLocaleString() || 'N/A'} shares</span>
+                                  <span>{breakdownItem.percentage?.toFixed(2) || 'N/A'}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
                   // Holdings item

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { useGraphData } from './hooks/useGraphData';
 import { getShareholdersForCompanies, getFilteredGraphData } from './utils/graphHelpers';
 import Toolbar from './components/Toolbar';
@@ -242,6 +243,8 @@ function App() {
       {showAcknowledgment && (
         <AcknowledgmentPopup onClose={() => setShowAcknowledgment(false)} />
       )}
+
+      <Analytics />
     </div>
   );
 }
